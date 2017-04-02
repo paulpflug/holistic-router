@@ -1,0 +1,52 @@
+{
+  "name": "holistic-router",
+  "description": "versatile server and client router for small single page sites",
+  "version": "0.0.0",
+  "homepage": "https://github.com/paulpflug/",
+  "author": {
+    "name": "Paul Pflugradt",
+    "email": "paul.pflugradt@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/paulpflug/holistic-router"
+  },
+  "engines": {
+    "node": "*"
+  },
+  "main": "server.js",
+  "browser": "client.js",
+  "files": [
+    "*.js"
+  ],
+  "dependencies": {
+    "cheerio": "^0.22.0",
+    "chokidar": "^1.6.1",
+    "consolidate": "^0.14.5",
+    "etag": "^1.8.0"
+  },
+  "devDependencies": {
+    "coffee-loader": "^0.7.3",
+    "coffee-script": "^1.12.4",
+    "koa": "^2.2.0",
+    "koa-hot-dev-webpack": "^0.1.6",
+    "koa-static": "^3.0.0",
+    "pug": "^2.0.0-beta11",
+    "webpack": "^2.3.2"
+  },
+  "keywords": [
+    "koa",
+    "router",
+    "html5"
+  ],
+  "readmeFilename": "README.md",
+  "scripts": {
+    "build": "coffee --no-header --compile --output ./ src/*.coffee",
+    "dev": "coffee ./dev/server.coffee",
+    "test": "",
+    "preversion": "npm run test",
+    "version": "npm run build && git add .",
+    "postversion": "git push && git push --tags && npm publish"
+  }
+}

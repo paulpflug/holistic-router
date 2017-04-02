@@ -1,0 +1,7 @@
+.somePug somePug
+div included from html.html:
+  include ./html.html
+ul
+  each route,path in routes
+    li(route-active=path)
+      a(href=path)= path
