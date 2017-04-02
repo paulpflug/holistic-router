@@ -18,7 +18,7 @@ npm install --save holistic-router
 
 ```js
 // server AND client-side
-Router = require("holistic-router)
+Router = require("holistic-router")
 router = new Router(options)
 
 // server-side only
