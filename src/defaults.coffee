@@ -1,6 +1,9 @@
 module.exports =
   options:
     htmlOptions: inject: true
+    markedOptions:
+      inject: true
+      ext: ".md"
   global:
     Promise: Promise
     root: ""

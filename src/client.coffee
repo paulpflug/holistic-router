@@ -26,15 +26,15 @@ module.exports = class Router
       setInterval(listener.bind(@), 66)
     else
       window.addEventListener "popstate", listener.bind(@)
-    document.addEventListener "click", @onClick.bind(@), true
+    document.addEventListener "click", @onClick.bind(@)
     return @
   onClick: (e) ->
-    if (el = e.target)? and el.getAttribute? and (path = el.pathname)
-      if path = el.getAttribute("href")
-        e.preventDefault()
-        @open(path)
-        return null
-  getPromiseFn: (obj) -> return obj || => @Promise.resolve()
+    el = e.target
+    while el? and not el.pathname?
+      el = el.parentElement    
+    if (path = el?.pathname) and path == el.getAttribute("href")
+      e.preventDefault()
+      @open(path)
   getProp: (route, prop, options) ->
     return route[prop] if route[prop]?
     if options? and (options = @[options+"Options"])? and options[prop]?
@@ -77,14 +77,14 @@ module.exports = class Router
       @_current = frag
       @loadView(route._el) if route._el?
       type = @getProp(route,"type")
-      if not route.el? and @getProp(route,"inject",type)
+      if not route.el?
         route.el = "#"+@urlToInjectID(frag)
       if route.el
         el = document.querySelector(route.el)
         if el?
           el = @createContainer(el.innerHTML) if el.children.length == 0
           @loadView(route._el = el)
-      else if (gen = @getProp(route,"gen",type))?
+      if not route._el and (gen = @getProp(route,"gen",type))?
         @loadView(route._el = @createContainer(gen(frag,route)))
       return @getProp(route,"cb")?()
   setActive: (path = @_current, oldPath) ->
@@ -98,18 +98,25 @@ module.exports = class Router
       el?.className += " #{@active}"
   open: (path, isBack) ->
     if path != (oldPath = @_current) and (route = @fragToRoute(path))?
-      @getPromiseFn(@beforeAll)(path, @_current)
-      .then @getPromiseFn(route.before)(path, @_current)
+      @Promise.resolve()
+      .then => @beforeAll?(path, @_current)
+      .then => route.before?(path, @_current)
       .then @route(path, route)
       .then =>
+        @_lastPath = oldPath
         unless isBack
           if @mode == "history"
             history.pushState(null, null, @root + path)
           else
             window.location.href = window.location.href.replace(/#(.*)$/, '') + '#' + path;
       .then @setActive.bind(@, path, oldPath)
-      .then @getPromiseFn(route.after)(path)
-      .then @getPromiseFn(@afterAll)(path)
+      .then => route.after?(path)
+      .then => @afterAll?(path)
       .catch (e) => 
         console.log e
         @open @defaultUrl
+  back: ->
+    if @_lastPath
+      @open(@_lastPath,histMode = @mode == "history")
+      if histMode
+        history.replaceState(null, null, @root + @_lastPath)

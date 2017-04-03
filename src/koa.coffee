@@ -1,30 +1,28 @@
 calculate = require('etag')
 isString = (str) -> typeof str == "string" || str instanceof String
-module.exports = (router) ->
-  return (next) ->
-    encoding = @acceptsEncodings('gzip', 'deflate', 'identity')
-    yield router.processUrl(@request.url,encoding).then (html, encoded) =>
-        @response.status = 200
-        #@response.lastModified = stats.mtime
+module.exports = (router) -> (ctx) ->
+    encoding = ctx.acceptsEncodings('gzip', 'deflate', 'identity')
+    return router.processUrl(ctx.request.url,encoding).then (html, encoded) =>
+        ctx.response.status = 200
+        #ctx.response.lastModified = stats.mtime
         if isString(html)
-          @response.length = html.length
+          ctx.response.length = html.length
         else
-          @set("Content-Encoding",encoding)
+          ctx.set("Content-Encoding",encoding)
           
-        @response.type = "html"
-        @response.etag ?= calculate html
-        fresh = @request.fresh
-        switch @request.method
+        ctx.response.type = "html"
+        ctx.response.etag ?= calculate html
+        fresh = ctx.request.fresh
+        switch ctx.request.method
           when 'HEAD'
-            @response.status = fresh ? 304 : 200
+            ctx.response.status = fresh ? 304 : 200
             break
           when 'GET'
             if fresh
-              @response.status = 304
+              ctx.response.status = 304
             else
-              @body = html
-        return next
+              ctx.body = html
       .catch (e) => 
         console.log e
-        @throw(403)
+        ctx.throw(403)
         

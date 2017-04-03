@@ -27,12 +27,13 @@ module.exports = class Router
 
   invalidate: (url,route) ->
     console.log "invalidate #{url}"
-    if route? and route == @getBaseObj()
-      for k,v of @routes
-        @invalidate(k,v)
+    if route?
+      if route == @getBaseObj()
+        for k,v of @routes
+          @invalidate(k,v)
     else
       route ?= @routes[url] 
-      route.cached = {}
+    route.cached = {}
   getBaseObj: -> @base
   getBase: ->
     route = @getBaseObj()
@@ -54,19 +55,21 @@ module.exports = class Router
     if options? and (options = @[options+"Options"])? and options[prop]?
       return options[prop] 
     return @[prop]
-
+  getMergedOptions: (route, type, defaults = {}) -> Object.assign(defaults, @[type+"Options"], route)
   getHtml: (route, url) ->
     route.cached ?= {}
     return Promise.resolve(route.cached.html) if route.cached.html
     type = @getProp(route,"type")
-    if consolidate[type]
-      getHtml = new Promise (resolve, reject) =>
-        consolidate[type] @getFilepath(route,url,type), {cache: false, routes: @routes}, (err, html) ->
-          return reject(err) if err
-          resolve(html)
+    prop = type+"ToHtml"
+    unless @[prop]?
+      if consolidate[type]
+        getHtml = new Promise (resolve, reject) =>
+          consolidate[type] @getFilepath(route,url,type), {cache: false, routes: @routes}, (err, html) ->
+            return reject(err) if err
+            resolve(html)
+      else
+        return Promise.resolve(false)
     else
-      prop = type+"ToHtml"
-      return Promise.resolve(false) unless @[prop]?
       getHtml = @[prop](route, url)
     return getHtml.then (html) =>
         if @getProp(route,"cache")
@@ -74,10 +77,14 @@ module.exports = class Router
         return html
   getToInject: (route, url) ->
     type = @getProp(route,"type")
-    type = "html" if consolidate[type]
-    return null unless @getProp(route,"inject",type)
     prop = type+"Inject"
-    return null unless @[prop]?
+    unless @[prop]?
+      if consolidate[type]
+        type = "html"
+        prop = "htmlInject"
+      else
+        return null 
+    return null unless @getProp(route,"inject",type)
     return @[prop].bind(@,@urlToInjectID(url))
   getFilepath: (route, url, type) ->
     filepath = route.file
@@ -90,13 +97,20 @@ module.exports = class Router
       filepath += ext
     folder = @getProp(route, "folder", type)
     filename = path.resolve(folder, filepath)
-    if not route.watcher and @getProp(route,"cache") and @getProp(route,"watch")
-      chokidar = libs.chokidar ?= require "chokidar"
-      invalidate = @invalidate.bind(@,url,route)
-      console.log "watching #{filename}"
-      route.watcher = chokidar.watch(filename, ignoreInitial: true)
-      .on("add",invalidate).on("change",invalidate)
+    @watchFiles(route, url, type, filename)
     return filename
+  watchFiles: (route, url, type, filenames, add) ->
+    if @getProp(route,"cache", type) and @getProp(route,"watch", type)
+      if add
+        if route.watcher
+          console.log "watching #{filenames}"
+          route.watcher.add(filenames) 
+      else unless route.watcher
+        console.log "watching #{filenames}"
+        chokidar = libs.chokidar ?= require "chokidar"
+        invalidate = @invalidate.bind(@,url,route)
+        route.watcher = chokidar.watch(filenames, ignoreInitial: true)
+        .on("add",invalidate).on("change",invalidate)
   urlToInjectID: (url) -> "injected"+url.toLowerCase().replace(/\//g,"-")
   getFile: (filepath) -> new Promise (resolve, reject) ->
     fs.readFile filepath, "utf8", (err, data) ->
@@ -132,4 +146,22 @@ module.exports = class Router
       return Promise.resolve(html)
   htmlToHtml: (route, url) ->
     @getFile(@getFilepath(route,url,"html"))
+  pugToHtml: (route, url) ->
+    type = "pug"
+    pug = libs[type] ?= require type
+    filename = @getFilepath(route,url,type)
+    opts = {filename: filename,cache: false}
+    @getFile(filename).then (content) =>
+      {dependencies} = pug.compileClientWithDependenciesTracked(content,opts)
+      @watchFiles(route, url, type, dependencies, true)
+      fn = pug.compile(content,opts)
+      return fn(routes:@routes) 
+  markedToHtml: (route,url) ->
+    type = "marked"
+    marked = libs[type] ?= require type
+    @getFile(@getFilepath(route,url,type)).then (content) => new @Promise (resolve, reject) =>
+      marked content, @getMergedOptions(route,type), (err, html) ->
+        return reject(err) if err
+        return resolve(html)
   htmlInject: (id, html) -> """<script type=x-template id=#{id}>#{html}</script>"""
+  markedInject: (id, html) -> @htmlInject(id,html)
