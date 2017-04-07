@@ -43,11 +43,18 @@ module.exports = class Router
     .then (html) -> return route.cached.doc = cheerio.load(html)
     .then ($) =>
       injectors = []
-      body = $("body")
+      firstScript = $("body>script")
+      unless firstScript.length > 0
+        body = $("body")
+        firstScript = null
       for k,v of @routes
         toInject = @getToInject(v,k)
         if toInject?
-          inject = (toInject, html) -> body.append toInject(html)
+          inject = (toInject, html) ->
+            if firstScript
+              firstScript.before toInject(html)
+            else 
+              body.append toInject(html)
           injectors.push @getHtml(v,k).then inject.bind(@,toInject)
       return Promise.all(injectors).then -> return $
   getProp: (route, prop, options) ->
