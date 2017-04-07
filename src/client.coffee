@@ -12,7 +12,8 @@ module.exports = class Router
     @viewComment = document.createComment("#view")
     @viewParent = @viewEl.parentElement
     oldRoute = @viewEl.getAttribute("route")
-    @fragToRoute(oldRoute)._el = @_currentEl = @createContainer()
+    @_currentRoute = @fragToRoute(oldRoute)
+    @_currentRoute._el = @createContainer()
     if oldRoute != (current = @getFragment())
       @open(current)
     else
@@ -53,15 +54,20 @@ module.exports = class Router
       match = window.location.href.match(/#(.*)$/)
       if match then return match[1] else return @defaultUrl
   fragToRoute: (frag) -> @routes[frag]
-  loadView: (el) ->
-    if el != @_currentEl
-      @viewParent.replaceChild(@viewComment,@viewEl)
-      while child = @viewEl.firstChild
-        @_currentEl.appendChild(child)
-      while child = el.firstChild
-        @viewEl.appendChild(child)
-      @_currentEl = el
-      @viewParent.replaceChild(@viewEl,@viewComment)
+  loadView: (route) ->
+    return false unless route._el?
+    if route != @_currentRoute
+      viewEl = @viewEl
+      @viewParent.replaceChild(@viewComment,viewEl)
+      el = @_currentRoute._el
+      while child = viewEl.firstChild
+        el.appendChild(child)
+      routeEl = route._el
+      while child = routeEl.firstChild
+        viewEl.appendChild(child)
+      @_currentRoute = route
+      @viewParent.replaceChild(viewEl,@viewComment)
+    return true
   createContainer: (content) -> 
     el = document.createElement "div"
     if isString(content)
@@ -75,17 +81,17 @@ module.exports = class Router
     route ?= @fragToRoute(frag)
     if route
       @_current = frag
-      @loadView(route._el) if route._el?
-      type = @getProp(route,"type")
-      if not route.el?
-        route.el = "#"+@urlToInjectID(frag)
-      if route.el
-        el = document.querySelector(route.el)
-        if el?
-          el = @createContainer(el.innerHTML) if el.children.length == 0
-          @loadView(route._el = el)
-      if not route._el and (gen = @getProp(route,"gen",type))?
-        @loadView(route._el = @createContainer(gen(frag,route)))
+      unless @loadView(route)
+        route.el ?= "#"+@urlToInjectID(frag)
+        if route.el
+          el = document.querySelector(route.el)
+          if el?
+            route._el = @createContainer(el.innerHTML) if el.children.length == 0
+        unless @loadView(route)
+          type = @getProp(route,"type")
+          if not route._el and (gen = @getProp(route,"gen",type))?
+            route._el = @createContainer(gen(frag,route))
+            @loadView(route)
       return @getProp(route,"cb")?()
   setActive: (path = @_current, oldPath) ->
     if @active
