@@ -6,9 +6,6 @@ consolidate = require "consolidate"
 libs = {}
 isString = (str) -> typeof str == "string" || str instanceof String
 
-if path.extname(__filename) == ".coffee"
-  require "coffee-script/register"
-
 defaults = require "./defaults"
 
 module.exports = class Router

@@ -18,12 +18,70 @@ npm install --save holistic-router
 
 ```js
 // server AND client-side
+// you need a way to resolve a require call on client-side
+// for example with webpack
 Router = require("holistic-router")
 router = new Router(options)
 
 // server-side only
 // KOA
 koa.use(router.middleware("koa"))
+```
+
+### Example
+```sh
+# Project layout
+index.html # base
+views/
+views/index.html
+views/1.html
+```
+```js
+// server-side
+Router = require("holistic-router")
+router = new Router({
+  base: {
+    folder: "."
+    file: "index.html"
+  },
+  folder: "views",
+  routes: {
+    "/": null
+    "/1": null
+  }
+})
+```
+```html
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+  <head></head>
+  <body>
+    <div id=view></div>
+  </body>
+</html>
+<!-- views/index.html -->
+<p>Hello World</p>
+<!-- views/1.html -->
+<p>Hello One</p>
+```
+Will serve the following file under "/":
+```html
+<!DOCTYPE html>
+<html>
+  <head></head>
+  <body>
+    <div id="view" route="/">
+      <p>Hello World</p>
+    </div>
+    <script type="x-template" id="injected-">
+      <p>Hello World</p>
+    </script>
+    <script type="x-template" id="injected-1">
+      <p>Hello One</p>
+    </script>
+  </body>
+</html>
 ```
 
 ### Options
@@ -47,7 +105,7 @@ afterAll: (path) =>
 entry: "index" // add this when a folder is opened
 folder: "." // base folder for all files relative to CWD
 cache: true // should cache results
-watch: true // watch files for changes
+watch: true // watch files for changes and invalidate cache
 gzip: true // only with cache
 
 // type-specific options

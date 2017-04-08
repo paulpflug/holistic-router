@@ -23,10 +23,10 @@
   "dependencies": {
     "cheerio": "^0.22.0",
     "chokidar": "^1.6.1",
-    "consolidate": "^0.14.5",
-    "etag": "^1.8.0"
+    "consolidate": "^0.14.5"
   },
   "devDependencies": {
+    "autodev": "0.0.1",
     "coffee-loader": "^0.7.3",
     "coffee-script": "^1.12.4",
     "koa": "^2.2.0",
@@ -44,7 +44,7 @@
   "readmeFilename": "README.md",
   "scripts": {
     "build": "coffee --no-header --compile --output ./ src/*.coffee",
-    "dev": "coffee ./dev/server.coffee",
+    "dev": "autodev ./dev/server.coffee",
     "test": "",
     "preversion": "npm run test",
     "version": "npm run build && git add .",
