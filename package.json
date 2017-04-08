@@ -26,7 +26,8 @@
     "consolidate": "^0.14.5"
   },
   "devDependencies": {
-    "autodev": "0.0.1",
+    "get-locale": "^0.0.1",
+    "autodev": "^0.0.1",
     "coffee-loader": "^0.7.3",
     "coffee-script": "^1.12.4",
     "koa": "^2.2.0",
@@ -45,6 +46,7 @@
   "scripts": {
     "build": "coffee --no-header --compile --output ./ src/*.coffee",
     "dev": "autodev ./dev/server.coffee",
+    "dev:locale": "autodev ./dev/serverLocale.coffee",
     "test": "",
     "preversion": "npm run test",
     "version": "npm run build && git add .",

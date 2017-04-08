@@ -41,13 +41,13 @@ views/1.html
 Router = require("holistic-router")
 router = new Router({
   base: {
-    folder: "."
+    folder: ".",
     file: "index.html"
   },
   folder: "views",
   routes: {
-    "/": null
-    "/1": null
+    "/": {},
+    "/1": {}
   }
 })
 ```
@@ -98,12 +98,12 @@ root: "" // in history mode: string will be removed from path
 mode: if history?.pushState? then "history" else "hash" 
 active: "active" // class for 'route-active' element if route is active
 // callbacks on route changing
-beforeAll: (path, oldPath) => // must return Promise
+beforeAll: (path, oldPath) => // throw error to reject route change
 afterAll: (path) =>
 
 // server-side only
 entry: "index" // add this when a folder is opened
-folder: "." // base folder for all files relative to CWD
+folder: "." // base folder for all files; relative to CWD
 cache: true // should cache results
 watch: true // watch files for changes and invalidate cache
 gzip: true // only with cache
@@ -126,35 +126,69 @@ routes:
     // route-specific options
     // will overwrite type-specific and global ones
     type: "pug"
-    // filename relative to folder
-    // would default to index as route points to a folder
+    // filename relative to folder, but can also contain a subfolder
+    // defaults to route
+    // when no basename is given e.g. "someFolder/"
+    // the string of the "entry" options will be appended
     file: "someFile" 
     folder: "./someFolder/" // folder relative to CWD, defaults to "."
     ext: ".pug" // defaults to "."+type
     // selector string for template element which contains the view
     // when inject == false
     el: "#templateElement" 
-    gen: (url, route) => // generator function for view
+    gen: (url, route) => // generator function for view (only client side)
+      // should return html string or array of elements
 
     // callbacks on route changing
-    before: (path, oldPath) => // throw error or reject to abort changing
-    after: (path, oldPath) =>
+    before: (path, oldPath) => // throw error to reject route change
+    after: (path) =>
   }
 ```
 ### Routing
 
-You can call `router.open("/")` to route. Furthermore all click events will be intercepted and when a local href is found e.g. `/`, processed by the router.
-If you want to enforce a server-side routing use a full path as href instead e.g. `http://localhost/".
+You can call `router.open("/")` to route. 
+
+Furthermore all click events will be intercepted and all relative href will be processed by the client side router.
+
+If you want to enforce a server-side routing use a full path instead of a relative as href e.g. `http://localhost/` vs `/`.
 
 ### Creating a navigation
 Use a template engine of your choice.
-The routes object will be injected into locals:
+The routes object will be injected:
 ```pug
-//pug
+//- pug
 ul
   each route,path in routes
     li(route-active=path)
       a(href=path)= path
+```
+
+### Locales
+
+`holistic-router` is compatible to [`getLocale`](https://github.com/paulpflug/getLocale):
+```js
+GetLocale = require("get-locale")
+getLocale = new GetLocale({
+  supported: ["de","en"],
+  priority: ["query","header"]
+})
+  
+Router = require("holistic-router")
+router = new Router({
+  base: {
+    file: "./index",
+    folder: "."
+    }, 
+  routes:{
+    "/": {}
+    },
+  folder: {
+    de: "./de",
+    en: "./en"
+    }
+})
+koa.use(getLocale.middleware("koa"))
+koa.use(router.middleware("koa"))
 ```
 
 
