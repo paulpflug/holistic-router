@@ -1,6 +1,7 @@
 module.exports =
   options:
     htmlOptions: inject: true
+    pugOptions: inject: true
     markedOptions:
       inject: true
       ext: ".md"
