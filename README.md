@@ -190,6 +190,11 @@ router = new Router({
 koa.use(getLocale.middleware("koa"))
 koa.use(router.middleware("koa"))
 ```
+the `locale` value will also get injected into your templates
+```pug
+//- pug
+html(lang=locale)
+```
 
 
 ## License

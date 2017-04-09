@@ -30,10 +30,10 @@ module.exports = class Router
     if route?
       if route == @getBaseObj()
         for k,v of @routes
-          @invalidate(k,v)
+          @invalidate(url:k, route:v)
     else
       route = @routes[url] 
-    route.cached = {}
+    route?.cached = {}
   getCache: ({route,locale,encoding},name) ->
     if (cache = route.cached)?
       if not locale or (cache = cache[locale])?
@@ -86,7 +86,7 @@ module.exports = class Router
     unless @[prop]?
       if consolidate[type]
         getHtml = new Promise (resolve, reject) =>
-          consolidate[type] @getFilepath(o), {cache: false, routes: @routes}, (err, html) ->
+          consolidate[type] @getFilepath(o), {cache: false, routes: @routes, locale:o.locale}, (err, html) ->
             return reject(err) if err
             resolve(html)
       else
@@ -170,7 +170,7 @@ module.exports = class Router
       {dependencies} = pug.compileClientWithDependenciesTracked(content,opts)
       @watchFiles(o, dependencies, true)
       fn = pug.compile(content,opts)
-      return fn(routes:@routes) 
+      return fn(routes:@routes, locale: o.locale) 
   markedToHtml: (o) ->
     marked = @getLib(o)
     @getFile(@getFilepath(o)).then (content) => new @Promise (resolve, reject) =>
@@ -178,4 +178,3 @@ module.exports = class Router
         return reject(err) if err
         return resolve(html)
   htmlInject: (id, html) -> """<script type=x-template id=#{id}>#{html}</script>"""
-  markedInject: (id, html) -> @htmlInject(id,html)
