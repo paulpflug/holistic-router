@@ -1,6 +1,11 @@
 defaults = require "./defaults"
 isString = (s) -> typeof s == "string" || s instanceof String 
+body = document.body
+docEl = document.documentElement
 module.exports = class Router
+  getScrollPos: ->
+    top: window.pageYOffset || docEl.scrollTop || body.scrollTop
+    left: window.pageXOffset || docEl.scrollLeft || body.scrollLeft
   constructor: (o) ->
     for k,v of defaults.global
       @[k] = v
@@ -20,9 +25,10 @@ module.exports = class Router
       @_current = current
       @setActive()
     @viewEl.removeAttribute("route")
-    listener = ->
+    listener = (e) ->
       if @_current != (tmp = @getFragment())
         @open(tmp, true)
+      return null
     if @mode != "history"
       setInterval(listener.bind(@), 66)
     else
@@ -103,11 +109,16 @@ module.exports = class Router
       el = document.querySelector("[route-active='#{path}']")
       el?.className += " #{@active}"
   open: (path, isBack) ->
+    if @mode == "history" and @root
+      path = path.replace(@root,"")
     if path != (oldPath = @_current) and (route = @fragToRoute(path))?
-      @Promise.resolve()
+      return @Promise.resolve()
       .then => @beforeAll?(path, @_current)
       .then => route.before?(path, @_current)
-      .then @route(path, route)
+      .then =>
+        @_currentRoute._scroll ?= []
+        @_currentRoute._scroll.push @getScrollPos()
+      .then => @route(path, route)
       .then =>
         @_lastPath = oldPath
         unless isBack
@@ -115,14 +126,22 @@ module.exports = class Router
             history.pushState(null, null, @root + path)
           else
             window.location.href = window.location.href.replace(/#(.*)$/, '') + '#' + path;
-      .then @setActive.bind(@, path, oldPath)
+      .then =>
+        if (isBack and s = @_currentRoute._scroll?.pop())?
+          window.scrollTo(s.left,s.top)
+        else
+          window.scrollTo(0,0)
+      .then => @setActive(path, oldPath)
       .then => route.after?(path)
       .then => @afterAll?(path)
       .catch (e) => 
         console.log e
         @open @defaultUrl
+    else
+      return @Promise.resolve()
   back: ->
     if @_lastPath
       @open(@_lastPath,histMode = @mode == "history")
-      if histMode
-        history.replaceState(null, null, @root + @_lastPath)
+      .then =>
+        if histMode
+          history.replaceState(null, null, @root + @_current)
