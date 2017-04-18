@@ -23,7 +23,7 @@ module.exports = class Router
       @open(current)
     else
       @_current = current
-      setTimeout @setActive.bind(@), 0
+      setTimeout @setActive.bind(@), 66
     @viewEl.removeAttribute("route")
     listener = (e) ->
       if @_current != (tmp = @getFragment())
