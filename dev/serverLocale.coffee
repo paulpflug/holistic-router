@@ -6,6 +6,7 @@ getLocale = new GetLocale
   priority: ["query","header"]
 Router = require("../src/server.coffee")
 router = new Router
+  cache: "./dev/localeCache"
   base:
     file: "./index"
     folder: "./dev"

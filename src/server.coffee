@@ -14,7 +14,12 @@ module.exports = class Router
     return libs[type] ?= require type
   close: ->
     for k,v of @routes
-      v.watcher?.close()
+      if v._watcher
+        if v._watcher.close
+          v._watcher.close()
+        else
+          for k2,v2 of v._watcher
+            v2.close?()
   middleware: (name) -> require("./#{name}")(@)
   constructor: (o) ->
     for k,v of defaults.global
@@ -66,8 +71,8 @@ module.exports = class Router
       if not dontWrite and o.url and isString(cachepath)
         filename = path.resolve(cachepath,@getCacheName(o,str))
         fs.outputFileSync(filename,value)
-        if o.route.watcher?
-          watched = o.route.watcher.getWatched()
+        if (watcher = @getWatcher(o))
+          watched = watcher.getWatched()
           tmp = []
           for k,v of watched
             for v2 in v
@@ -143,10 +148,20 @@ module.exports = class Router
   getFolder: (o) ->
     folder = @getProp(o.route, "folder")
     return (o.locale and folder[o.locale]) or folder
-
+  getWatcher: (o) ->
+    w = o.route?._watcher
+    w = w[o.locale] if w and o.locale
+    return w
+  setWatcher: (o, watcher) ->
+    if (route = o.route)?
+      if o.locale
+        route._watcher ?= {}
+        route._watcher[o.locale] = watcher
+      else
+        route._watcher = watcher
   watchFiles: (o, filenames, add) ->
     if @getProp(o.route,"cache") and @getProp(o.route,"watch")
-      watcher = o.route.watcher
+      watcher = @getWatcher(o)
       if add
         if watcher
           console.log "watching #{filenames}"
@@ -155,7 +170,7 @@ module.exports = class Router
         console.log "watching #{filenames}"
         chokidar = libs.chokidar ?= require "chokidar"
         invalidate = @invalidate.bind(@,o)
-        o.route.watcher = chokidar.watch(filenames, ignoreInitial: true)
+        @setWatcher o, chokidar.watch(filenames, ignoreInitial: true)
         .on("add",invalidate).on("change",invalidate)
   toInjectID: (o) -> "injected"+o.url.toLowerCase().replace(/\//g,"-")
   getFile: (filepath) -> new Promise (resolve, reject) ->
