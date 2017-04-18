@@ -23,7 +23,8 @@
   "dependencies": {
     "cheerio": "^0.22.0",
     "chokidar": "^1.6.1",
-    "consolidate": "^0.14.5"
+    "consolidate": "^0.14.5",
+    "fs-extra": "^2.1.2"
   },
   "devDependencies": {
     "get-locale": "^0.0.1",

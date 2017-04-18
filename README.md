@@ -104,7 +104,7 @@ afterAll: (path) =>
 // server-side only
 entry: "index" // add this when a folder is opened
 folder: "." // base folder for all files; relative to CWD
-cache: true // should cache results
+cache: true // should cache results. Can be string to folder to use fs cache
 watch: true // watch files for changes and invalidate cache
 gzip: true // only with cache
 

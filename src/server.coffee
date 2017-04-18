@@ -1,5 +1,5 @@
 path = require "path"
-fs = require "fs"
+fs = require "fs-extra"
 cheerio = require "cheerio"
 zlib = require "zlib"
 consolidate = require "consolidate"
@@ -32,28 +32,55 @@ module.exports = class Router
         for k,v of @routes
           @invalidate(url:k, route:v)
     else
-      route = @routes[url] 
-    route?.cached = {}
-  getCache: ({route,locale,encoding},name) ->
-    if (cache = route.cached)?
-      if not locale or (cache = cache[locale])?
-        str = name || encoding || "doc"
+      route = @routes[url]
+    if route? 
+      route.cached = {}
+      if url and isString(cachepath = @getProp(route,"cache"))
+        fs.remove path.resolve(cachepath,url.replace(/\//g,"!"))
+  getCacheName: ({url, locale}, str) -> [url.replace(/\//g,"!"),locale ?= "default",str].join("/")
+  getCache: (o,name, dontRead) ->
+    str = name || o.encoding || "doc"
+    if (cache = o.route.cached)?
+      if not o.locale or (cache = cache[o.locale])?
         return cache[str]
+    else if not dontRead and o.url and isString(cachepath = @getProp(o.route,"cache"))
+      filename = path.resolve(cachepath,@getCacheName(o,str))
+      if fs.existsSync(filename)
+        console.log "reading from cache: #{filename}"
+        value = fs.readFileSync(filename)
+        @setCache(o, value, name, true)
+        if @getProp(o.route,"watch")
+          watchedPath = path.resolve(cachepath,@getCacheName(o,"_watched"))
+          if fs.existsSync(watchedPath)
+            watchFiles = fs.readJsonSync(watchedPath)
+            @watchFiles(o,watchFiles,o.route.watcher?)
+        return value
     return null
-  setCache: ({route,locale,encoding},value, name) ->
-    if @getProp(route,"cache")
-      cache = route.cached ?= {}
-      if locale?
-        cache = cache[locale] ?= {}
-      str = name || encoding || "doc"
+  setCache: (o, value, name, dontWrite) ->
+    if (cachepath = @getProp(o.route,"cache"))
+      cache = o.route.cached ?= {}
+      if o.locale?
+        cache = cache[o.locale] ?= {}
+      str = name || o.encoding || "doc"
       cache[str] = value
+      if not dontWrite and o.url and isString(cachepath)
+        filename = path.resolve(cachepath,@getCacheName(o,str))
+        fs.outputFileSync(filename,value)
+        if o.route.watcher?
+          watched = o.route.watcher.getWatched()
+          tmp = []
+          for k,v of watched
+            for v2 in v
+              tmp.push path.resolve(k,v2)
+          fs.outputJsonSync(path.resolve(cachepath,@getCacheName(o,"_watched")),tmp)
     return value
   getBaseObj: -> @base
   getBase: (o) ->
     o.route = @getBaseObj()
-    return Promise.resolve(cache) if (cache = @getCache(o, "doc"))
+    o.url = "__base"
+    return Promise.resolve(cache) if (cache = @getCache(o, "doc", true))
     return @getHtml(o)
-    .then (html) => @setCache(o, cheerio.load(html), "doc")
+    .then (html) => @setCache(o, cheerio.load(html), "doc", true)
     .then ($) =>
       injectors = []
       firstScript = $("body>script")
@@ -137,7 +164,10 @@ module.exports = class Router
       return resolve(data)
   processUrl: (o) ->
     o.url = o.url.replace(@root, "")
-    o.route = @routes[o.url] || @routes[@defaultUrl]
+    o.route = @routes[o.url] 
+    unless o.route
+      o.route = @routes[@defaultUrl]
+      o.url = @defaultUrl
     o.compress = zlib[o.encoding]
     @processRoute(o)
   processRoute: (o) ->
@@ -158,7 +188,7 @@ module.exports = class Router
           return new Promise (resolve,reject) =>
             o.compress new Buffer(html, "utf8"),level:9, (err, result) =>
               return reject(err) if err
-              resolve(@setCache(o,html))
+              resolve(@setCache(o,result))
         return Promise.resolve(html)
   htmlToHtml: (o) ->
     @getFile(@getFilepath(o))

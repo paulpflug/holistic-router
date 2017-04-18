@@ -13,3 +13,4 @@ module.exports = (Router) -> new Router
     "/ceri":
       type: "ceri"
   folder: "./dev/app"
+  cache: "./dev/cache"
