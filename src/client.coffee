@@ -23,7 +23,7 @@ module.exports = class Router
       @open(current)
     else
       @_current = current
-      @setActive()
+      setTimeout @setActive.bind(@), 0
     @viewEl.removeAttribute("route")
     listener = (e) ->
       if @_current != (tmp = @getFragment())
@@ -131,7 +131,7 @@ module.exports = class Router
           window.scrollTo(s.left,s.top)
         else
           window.scrollTo(0,0)
-      .then => @setActive(path, oldPath)
+      .then => setTimeout (=> @setActive(path, oldPath)), 0
       .then => route.after?(path)
       .then => @afterAll?(path)
       .catch (e) => 
