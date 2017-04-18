@@ -181,17 +181,20 @@ module.exports = class Router
     o.url = o.url.replace(@root, "")
     o.route = @routes[o.url] 
     unless o.route
-      o.route = @routes[@defaultUrl]
       o.url = @defaultUrl
-    o.compress = zlib[o.encoding]
-    @processRoute(o)
+      o.route = @routes[o.url]
+    if o.route
+      o.compress = zlib[o.encoding]
+      return @processRoute(o)
+    else
+      return Promise.reject()
   processRoute: (o) ->
     return Promise.resolve(cache) if (cache = @getCache(o))
     return @getBase(locale: o.locale).then ($) =>
       @getHtml(o)
       .then (html) =>
         if html == false and o.url != @defaultUrl
-          return @processUrl(Object.assign({url: @defaultUrl}, o))
+          return @processUrl(Object.assign({}, o, {url: @defaultUrl}))
         if html != false
           $(@view).html(html).attr("route",o.url)
           toInject = @getToInject(o)
