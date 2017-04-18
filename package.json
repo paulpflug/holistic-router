@@ -1,7 +1,7 @@
 {
   "name": "holistic-router",
   "description": "versatile server and client router for small single page sites",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "homepage": "https://github.com/paulpflug/",
   "author": {
     "name": "Paul Pflugradt",
