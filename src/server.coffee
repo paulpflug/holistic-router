@@ -6,6 +6,8 @@ consolidate = require "consolidate"
 libs = {}
 isString = (str) -> typeof str == "string" || str instanceof String
 
+
+
 defaults = require "./defaults"
 
 module.exports = class Router
@@ -22,6 +24,7 @@ module.exports = class Router
             v2.close?()
   middleware: (name) -> require("./#{name}")(@)
   constructor: (o) ->
+    @cwd = process.cwd()
     for k,v of defaults.global
       @[k] = v
     for k,v of o
@@ -29,7 +32,8 @@ module.exports = class Router
     for k,v of defaults.options
       @[k] = Object.assign(v,@[k])
     return @
-
+  resolvePath: ->
+    path.resolve.apply null, [@cwd].concat(Array.prototype.slice.call(arguments))
   invalidate: ({url,route}) ->
     console.log "invalidate #{url}"
     if route?
@@ -41,7 +45,7 @@ module.exports = class Router
     if route? 
       route.cached = {}
       if url and isString(cachepath = @getProp(route,"cache"))
-        fs.remove path.resolve(cachepath,url.replace(/\//g,"!"))
+        fs.remove @resolvePath(cachepath,url.replace(/\//g,"!"))
   getCacheName: ({url, locale}, str) -> [url.replace(/\//g,"!"),locale ?= "default",str].join("/")
   getCache: (o,name, dontRead) ->
     str = name || o.encoding || "doc"
@@ -49,13 +53,13 @@ module.exports = class Router
       if not o.locale or (cache = cache[o.locale])?
         return cache[str]
     else if not dontRead and o.url and isString(cachepath = @getProp(o.route,"cache"))
-      filename = path.resolve(cachepath,@getCacheName(o,str))
+      filename = @resolvePath(cachepath,@getCacheName(o,str))
       if fs.existsSync(filename)
         console.log "reading from cache: #{filename}"
         value = fs.readFileSync(filename)
         @setCache(o, value, name, true)
         if @getProp(o.route,"watch")
-          watchedPath = path.resolve(cachepath,@getCacheName(o,"_watched"))
+          watchedPath = @resolvePath(cachepath,@getCacheName(o,"_watched"))
           if fs.existsSync(watchedPath)
             watchFiles = fs.readJsonSync(watchedPath)
             @watchFiles(o,watchFiles,o.route.watcher?)
@@ -69,15 +73,15 @@ module.exports = class Router
       str = name || o.encoding || "doc"
       cache[str] = value
       if not dontWrite and o.url and isString(cachepath)
-        filename = path.resolve(cachepath,@getCacheName(o,str))
+        filename = @resolvePath(cachepath,@getCacheName(o,str))
         fs.outputFileSync(filename,value)
         if (watcher = @getWatcher(o))
           watched = watcher.getWatched()
           tmp = []
           for k,v of watched
             for v2 in v
-              tmp.push path.resolve(k,v2)
-          fs.outputJsonSync(path.resolve(cachepath,@getCacheName(o,"_watched")),tmp)
+              tmp.push @resolvePath(k,v2)
+          fs.outputJsonSync(@resolvePath(cachepath,@getCacheName(o,"_watched")),tmp)
     return value
   getBaseObj: -> @base
   getBase: (o) ->
@@ -87,6 +91,29 @@ module.exports = class Router
     return @getHtml(o)
     .then (html) => @setCache(o, cheerio.load(html), "doc", true)
     .then ($) =>
+      # webpack manifest inject
+      if @webpackManifest
+        try
+          manifest = require(@resolvePath(@webpackManifest))
+        catch
+          console.log "webpack manifest not found"
+        if manifest
+          for k,v of manifest
+            if k != v
+              switch k.slice(-3)
+                when ".js"
+                  $("script[src='#{k}']").attr "src", v
+                when "css"
+                  $("link[href='#{k}']").attr "href", k
+      if @webpackChunkManifest
+        try
+          manifest = require(@resolvePath(@webpackChunkManifest))
+        catch
+          console.log "webpack chunk manifest not found"
+          manifest = null
+        if manifest
+          $("head").append "<script>window.webpackManifest=#{JSON.stringify(manifest)}</script>"
+
       injectors = []
       firstScript = $("body>script")
       unless firstScript.length > 0
@@ -142,7 +169,7 @@ module.exports = class Router
     if ext and path.extname(filepath) == ""
       filepath += ext
     folder = @getFolder(o)
-    filename = path.resolve(folder, filepath)
+    filename = @resolvePath(folder, filepath)
     @watchFiles(o, filename)
     return filename
   getFolder: (o) ->

@@ -107,6 +107,9 @@ folder: "." // base folder for all files; relative to CWD
 cache: true // should cache results. Can be string to folder to use fs cache
 watch: true // watch files for changes and invalidate cache
 gzip: true // only with cache
+cwd: process.cwd() // all folders will be relative to CWD
+webpackManifest: "manifest.json" // filename, used to replace <script> href with webpack hashed names
+webpackChunkManifest: "chunk-manifest.json" // filename, used to inline webpack chunk manifest
 
 // type-specific options
 // will overwrite global options
