@@ -104,7 +104,7 @@ module.exports = class Router
                 when ".js"
                   $("script[src='#{k}']").attr "src", v
                 when "css"
-                  $("link[href='#{k}']").attr "href", k
+                  $("link[href='#{k}']").attr "href", v
       if @webpackChunkManifest
         try
           manifest = require(@resolvePath(@webpackChunkManifest))
