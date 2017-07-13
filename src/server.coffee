@@ -4,7 +4,7 @@ cheerio = require "cheerio"
 zlib = require "zlib"
 consolidate = require "consolidate"
 libs = {}
-isString = (str) -> typeof str == "string" || str instanceof String
+isString = (str) => typeof str == "string" || str instanceof String
 
 
 

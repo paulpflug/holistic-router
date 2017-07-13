@@ -96,8 +96,11 @@ module.exports = class Router
         unless @loadView(route)
           type = @getProp(route,"type")
           if not route._el and (gen = @getProp(route,"gen",type))?
-            route._el = @createContainer(gen(frag,route))
-            @loadView(route)
+            return @Promise.resolve(gen(frag, route))
+              .then (content) =>
+                route._el = @createContainer(content)
+                @loadView(route)
+                return @getProp(route,"cb")
       return @getProp(route,"cb")?()
   setActive: (path = @_current, oldPath) ->
     if @active
@@ -135,7 +138,6 @@ module.exports = class Router
       .then => route.after?(path)
       .then => @afterAll?(path)
       .catch (e) => 
-        console.log e
         @open @defaultUrl
     else
       return @Promise.resolve()

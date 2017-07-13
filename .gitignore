@@ -5,3 +5,4 @@ node_modules
 *.js
 dev/cache
 dev/localeCache
+shrinkwrap.yaml
