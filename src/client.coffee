@@ -100,8 +100,8 @@ module.exports = class Router
               .then (content) =>
                 route._el = @createContainer(content)
                 @loadView(route)
-                return @getProp(route,"cb")
-      return @getProp(route,"cb")?()
+                return @getProp(route,"cb")?.call(@)
+      return @getProp(route,"cb")?.call(@)
   setActive: (path = @_current, oldPath) ->
     if @active
       if oldPath
@@ -114,33 +114,33 @@ module.exports = class Router
   open: (path, isBack) ->
     if @mode == "history" and @root
       path = path.replace(@root,"")
+    start = @Promise.resolve()
     if path != (oldPath = @_current) and (route = @fragToRoute(path))?
-      return @Promise.resolve()
-      .then => @beforeAll?(path, @_current)
-      .then => route.before?(path, @_current)
-      .then =>
-        @_currentRoute._scroll ?= []
-        @_currentRoute._scroll.push @getScrollPos()
-      .then => @route(path, route)
-      .then =>
-        @_lastPath = oldPath
-        unless isBack
-          if @mode == "history"
-            history.pushState(null, null, @root + path)
+      return start
+        .then => @beforeAll?.call(@, path, @_current)
+        .then => route.before?.call(@, path, @_current)
+        .then =>
+          @_currentRoute._scroll ?= []
+          @_currentRoute._scroll.push @getScrollPos()
+          @route(path, route)
+        .then =>
+          @_lastPath = oldPath
+          unless isBack
+            if @mode == "history"
+              history.pushState(null, null, @root + path)
+            else
+              window.location.href = window.location.href.replace(/#(.*)$/, '') + '#' + path;
+          if (isBack and s = @_currentRoute._scroll?.pop())?
+            window.scrollTo(s.left,s.top)
           else
-            window.location.href = window.location.href.replace(/#(.*)$/, '') + '#' + path;
-      .then =>
-        if (isBack and s = @_currentRoute._scroll?.pop())?
-          window.scrollTo(s.left,s.top)
-        else
-          window.scrollTo(0,0)
-      .then => setTimeout (=> @setActive(path, oldPath)), 0
-      .then => route.after?(path)
-      .then => @afterAll?(path)
-      .catch (e) => 
-        @open @defaultUrl
-    else
-      return @Promise.resolve()
+            window.scrollTo(0,0)
+          setTimeout (=> @setActive(path, oldPath)), 0
+          route.after?.call(@, path)
+        .then => @afterAll?.call(@, path)
+        .catch (e) =>
+          console.log e
+          @open @defaultUrl
+    return start
   back: ->
     if @_lastPath
       @open(@_lastPath,histMode = @mode == "history")

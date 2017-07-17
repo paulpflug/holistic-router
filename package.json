@@ -24,13 +24,13 @@
     "cheerio": "^1.0.0-rc.2",
     "chokidar": "^1.7.0",
     "consolidate": "^0.14.5",
-    "fs-extra": "^3.0.1"
+    "fs-extra": "^4.0.0"
   },
   "devDependencies": {
-    "autodev": "^0.1.0",
+    "autodev": "^0.1.1",
     "coffee-cli": "^0.2.1",
     "coffee-loader": "^0.7.3",
-    "coffee-script": "^1.12.6",
+    "coffee-script": "^1.12.7",
     "get-locale": "^0.0.1",
     "koa": "^2.3.0",
     "koa-hot-dev-webpack": "^0.1.11",
@@ -38,7 +38,7 @@
     "marked": "^0.3.6",
     "pug": "^2.0.0-rc.2",
     "script-runner": "^0.1.7",
-    "webpack": "^3.2.0"
+    "webpack": "^3.3.0"
   },
   "keywords": [
     "koa",
