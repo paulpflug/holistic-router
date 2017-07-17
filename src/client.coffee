@@ -1,8 +1,8 @@
-defaults = require "./defaults"
+import defaults from "./defaults"
 isString = (s) -> typeof s == "string" || s instanceof String 
 body = document.body
 docEl = document.documentElement
-module.exports = class Router
+export default class Router
   getScrollPos: ->
     top: window.pageYOffset || docEl.scrollTop || body.scrollTop
     left: window.pageXOffset || docEl.scrollLeft || body.scrollLeft
