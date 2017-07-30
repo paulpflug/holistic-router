@@ -1,5 +1,7 @@
 module.exports =
   options:
+    base:
+      _isBase: true
     htmlOptions: inject: true
     pugOptions: inject: true
     markedOptions:

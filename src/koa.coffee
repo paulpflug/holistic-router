@@ -12,6 +12,7 @@ module.exports = (router) => (ctx, next) =>
       ctx.set("Content-Encoding",encoding)
     ctx.response.type = "html"
     ctx.body = html
+    return next()
   .catch (e) => 
     console.log e
     ctx.throw(403)

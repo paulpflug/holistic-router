@@ -27,10 +27,11 @@
     "fs-extra": "^4.0.0"
   },
   "devDependencies": {
-    "autodev": "^0.1.1",
+    "autodev": "^0.1.2",
     "coffee-cli": "^0.2.1",
     "coffee-loader": "^0.7.3",
     "coffee-script": "^1.12.7",
+    "coffeescript": "^2.0.0-beta3",
     "get-locale": "^0.0.1",
     "koa": "^2.3.0",
     "koa-hot-dev-webpack": "^0.1.11",
@@ -38,7 +39,7 @@
     "marked": "^0.3.6",
     "pug": "^2.0.0-rc.2",
     "script-runner": "^0.1.7",
-    "webpack": "^3.3.0"
+    "webpack": "^3.4.1"
   },
   "keywords": [
     "koa",

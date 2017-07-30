@@ -1,7 +1,7 @@
 path = require("path")
 Koa = require("koa")
-koaHotDevWebpack = require "koa-hot-dev-webpack"
-module.exports = (server, reload) ->
+module.exports = (server, reload) =>
+  koaHotDevWebpack = require "koa-hot-dev-webpack"
   router = require("./router")(require("../src/server.coffee"))
   koa = new Koa()
   koa.use(require("koa-static")(path.resolve("./static")))
@@ -10,6 +10,6 @@ module.exports = (server, reload) ->
   server.on "request", koa.callback()
   server.listen(8080)
   koaHotDevWebpack.reload() if reload
-  return ->
+  return =>
     koaHotDevWebpack.close()
     router.close()
