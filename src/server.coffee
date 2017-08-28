@@ -31,6 +31,19 @@ module.exports = class Router
       @[k] = v
     for k,v of defaults.options
       @[k] = Object.assign(v,@[k])
+    if @cache?
+      @_watchedPath = @resolvePath(@cache, "_watched")
+      try
+        @_watched = fs.readJsonSync @_watchedPath
+        for k,v of @_watched
+          if k == "__base"
+            route = @getBaseObj()
+          else
+            route = @routes[k]
+          @watchFiles({url: k, route:route, locale:v.locale},v.files)
+      catch e
+        console.log e
+        @_watched = {}
     return @
   resolvePath: ->
     path.resolve.apply null, [@cwd].concat(Array.prototype.slice.call(arguments))
@@ -42,15 +55,19 @@ module.exports = class Router
         cache = cache[o.locale]
         return unless cache?
       unless _docOnly
-        for k,v of @routes
-          @invalidate({url:k, route:v, locale:o.locale}, true) if k != url
         console.log "invalidate #{url}"
+        @invalidate({url:"__base", route:@getBaseObj(), locale:o.locale}, true)
+        for k,v of @routes
+          if k != url
+            @invalidate({url:k, route:v, locale:o.locale}, true)
+ 
       for k,v of cache
-        delete cache[k] if not _docOnly or k != "html"
+        if not _docOnly or k != "html"
+          delete cache[k]
       if isString(cachepath = @getProp(route,"cache"))
         files = await fs.readdir(abspath = @resolvePath(cachepath, @getCacheName(o,"")))
         for file in files
-          if not _docOnly or (file != "html" and file != "_watched")
+          if not _docOnly or (file != "html")
             fs.remove path.resolve(abspath, file)
 
   getCacheName: ({url, locale}, str) -> [url.replace(/\//g,"!"),locale ?= "default",str].join("/")
@@ -65,11 +82,6 @@ module.exports = class Router
         console.log "reading from cache: #{filename}"
         value = await fs.readFile(filename)
         await @setCache(o, value, name, true)
-        if @getProp(o.route,"watch")
-          watchedPath = @resolvePath(cachepath,@getCacheName(o,"_watched"))
-          if await fs.exists(watchedPath)
-            watchFiles = await fs.readJson(watchedPath)
-            @watchFiles(o,watchFiles,o.route.watcher?)
         return value
     return null
   setCache: (o, value, name, dontWrite) ->
@@ -88,7 +100,10 @@ module.exports = class Router
           for k,v of watched
             for v2 in v
               tmp.push @resolvePath(k,v2)
-          await fs.outputJson(@resolvePath(cachepath,@getCacheName(o,"_watched")),tmp)
+          @_watched[o.url] = 
+            files: tmp
+            locale: o.locale
+          await fs.outputJson(@_watchedPath,@_watched)
 
     return value
   getBaseObj: -> @base
