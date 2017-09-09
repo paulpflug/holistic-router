@@ -24,7 +24,8 @@
     "cheerio": "^1.0.0-rc.2",
     "chokidar": "^1.7.0",
     "consolidate": "^0.14.5",
-    "fs-extra": "^4.0.0"
+    "fs-extra": "^4.0.0",
+    "html-minifier": "^3.5.3"
   },
   "devDependencies": {
     "autodev": "^0.1.2",

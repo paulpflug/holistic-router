@@ -16,8 +16,7 @@ module.exports =
     view: "#view"
     active: "active"
     folder: "."
-    cache: true
+    cache: "./.holistic-router-cache"
     watch: true
-    gzip: true
     inject: false
     mode: if history?.pushState? then "history" else "hash"

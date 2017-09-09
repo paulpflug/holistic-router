@@ -3,9 +3,10 @@ fs = require "fs-extra"
 cheerio = require "cheerio"
 zlib = require "zlib"
 consolidate = require "consolidate"
+
 libs = {}
 isString = (str) => typeof str == "string" || str instanceof String
-
+isFunction = (fn) => typeof fn == "function"
 
 
 defaults = require "./defaults"
@@ -31,7 +32,7 @@ module.exports = class Router
       @[k] = v
     for k,v of defaults.options
       @[k] = Object.assign(v,@[k])
-    if @cache?
+    if isString(@cache)
       @_watchedPath = @resolvePath(@cache, "_watched")
       try
         @_watched = fs.readJsonSync @_watchedPath
@@ -41,8 +42,7 @@ module.exports = class Router
           else
             route = @routes[k]
           @watchFiles({url: k, route:route, locale:v.locale},v.files)
-      catch e
-        console.log e
+      catch 
         @_watched = {}
     return @
   resolvePath: ->
@@ -135,7 +135,19 @@ module.exports = class Router
         manifest = null
       if manifest
         $("head").append "<script>window.webpackManifest=#{JSON.stringify(manifest)}</script>"
-
+    if (ccss = @criticalcss)
+      try
+        critical = await fs.readFile path.resolve(ccss.save, "_critical.css"), "utf8"
+      catch e
+        console.log e
+      if critical?
+        $(ccss.stylesheets).remove()
+        unless ccss.hash? and ccss.hash == false
+          hashed = await fs.readFile path.resolve(ccss.save, "_uncritical"), "utf8"
+        else
+          hashed = "_uncritical.css"
+        uncritical = path.join(ccss.path or "",hashed)
+        $("head").append "<style type='text/css'>#{critical}</style><link rel='stylesheet' href='#{uncritical}'></style>"
     injectors = []
     firstScript = $("body>script")
     unless firstScript.length > 0
@@ -171,6 +183,12 @@ module.exports = class Router
         return false
     else
       html = await @[prop](o)
+    if (minifyOpts = @getProp(o.route, "minify"))?
+      if isFunction(minifyOpts)
+        html = await minifyOpts(html)
+      else
+        {minify} = require "html-minifier"
+        html = minify html, minifyOpts
     @setCache(o, html, "html")
   getToInject: (o) ->
     return null unless @getProp(o.route,"inject")
