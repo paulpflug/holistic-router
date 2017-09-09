@@ -137,13 +137,13 @@ module.exports = class Router
         $("head").append "<script>window.webpackManifest=#{JSON.stringify(manifest)}</script>"
     if (ccss = @criticalcss)
       try
-        critical = await fs.readFile path.resolve(ccss.save, "_critical.css"), "utf8"
+        critical = await fs.readFile @resolvePath(ccss.save, "_critical.css"), "utf8"
       catch e
         console.log e
       if critical?
         $(ccss.stylesheets).remove()
         unless ccss.hash? and ccss.hash == false
-          hashed = await fs.readFile path.resolve(ccss.save, "_uncritical"), "utf8"
+          hashed = await fs.readFile @resolvePath(ccss.save, "_uncritical"), "utf8"
         else
           hashed = "_uncritical.css"
         uncritical = path.join(ccss.path or "",hashed)
