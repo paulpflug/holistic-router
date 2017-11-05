@@ -147,20 +147,31 @@ module.exports = class Router
         else
           hashed = "_uncritical.css"
         uncritical = path.join(ccss.path or "",hashed)
-        $("head").append "<style type='text/css'>#{critical}</style><link rel='stylesheet' href='#{uncritical}'></style>"
+        $("head").append "<style type='text/css'>#{critical}</style>"
+        $("head").append """
+          <noscript>
+            <link rel='stylesheet' href='#{uncritical}'></link>
+          </noscript>
+          <script>
+            window.addEventListener("load", function(){
+              l = document.createElement("link")
+              l.type = "text/css"
+              l.rel = "stylesheet"
+              l.href = "#{uncritical}"
+              document.head.appendChild(l)
+            }, false)
+          </script>
+        """
     injectors = []
-    firstScript = $("body>script")
-    unless firstScript.length > 0
+    firstScript = $("body>script").first()
+    if firstScript.length > 0
+      inject = (toInject, html) -> firstScript.before toInject(html)
+    else
       body = $("body")
-      firstScript = null
+      inject = (toInject, html) -> body.append toInject(html)
     for k,v of @routes
       toInject = @getToInject(obj = route: v, url: k, locale: o.locale)
       if toInject?
-        inject = (toInject, html) ->
-          if firstScript
-            firstScript.before toInject(html)
-          else 
-            body.append toInject(html)
         injectors.push @getHtml(obj).then inject.bind(@,toInject)
     return Promise.all(injectors).then => return $
   getType: (route) -> route._type ?= (route.type || @type)
@@ -257,9 +268,9 @@ module.exports = class Router
       return @processUrl(Object.assign({}, o, {url: @defaultUrl}))
     if html != false
       $(@view).html(html).attr("route",o.url)
-      toInject = @getToInject(o)
-      if toInject?
-        $("#"+@toInjectID(o)).replaceWith(toInject(html))
+      #toInject = @getToInject(o)
+      #if toInject?
+      #  $("#"+@toInjectID(o)).replaceWith(toInject(html))
     html = $.html()
     await @setCache(o,html,"doc")
     if o.compress?
